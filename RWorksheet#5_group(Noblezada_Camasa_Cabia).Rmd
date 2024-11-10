@@ -2,7 +2,10 @@
 title: "RWorksheet#5_group.R,"
 author: "Noblezada, Camasa, Cabia"
 date: "2024-11-06"
-output: pdf_document
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -19,15 +22,15 @@ url <- 'https://www.amazon.com/ref=nav_logo'
 session <- bow(url,
               user_agent = "Educational")
 session
-```
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+page <- scrape(session)
 ```
 
 ```{r}
 library(polite)
 library(kableExtra)
 library(rmarkdown)
+library(rvest)
 
 url <- 'https://www.imdb.com/search/title/?title_type=tv_series&sort=num_votes,desc'
 
@@ -38,6 +41,30 @@ session
 rank_title <- character(0)
 links <- character(0)
 
+title_list <- scrape(session) %>%
+  html_nodes('h3.ipc-title__text') %>% 
+  html_text
+
+title_list_sub <- as.data.frame(title_list[1:50])
+head(title_list_sub)
+tail(title_list_sub)
+
+colnames(title_list_sub) <- "ranks"
+
+split_df <- strsplit(as.character(title_list_sub$ranks),".",fixed = TRUE)
+split_df <- data.frame(do.call(rbind,split_df))
+
+# deleting columns 3 and 4 since it duplicated the columns
+split_df <- split_df[-c(3:4)] 
+
+#renaming column 1 and 2
+colnames(split_df) <- c("ranks","title") 
+
+# structure of splif_df
+str(split_df) 
+
+head(split_df)
+split_df
 ```
 
 ```{r}
