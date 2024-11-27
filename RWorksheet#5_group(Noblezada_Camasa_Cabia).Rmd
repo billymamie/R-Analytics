@@ -12,6 +12,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# IMDB
+
 ```{r}
 library(rvest)
 library(httr)
@@ -312,4 +314,81 @@ ggplot(yearCount, aes(x = years, y = n)) +
 
 most_releases <- yearCount[which.max(yearCount$n), ]
 print(most_releases)
+```
+
+```{r}
+# Load necessary libraries
+library(rvest)
+library(httr)
+library(dplyr)
+library(polite)
+library(stringr)
+library(kableExtra)
+library(rmarkdown)
+
+
+url <- "https://www.amazon.com/"
+session <- bow(url, 
+               user_agent = "Educational")
+session
+
+
+urls <- c('https://www.amazon.com/s?k=phone+case&crid=17K7DKH43L51O&sprefix=phone+case%2Caps%2C508&ref=nb_sb_noss_1', 
+          'https://www.amazon.com/s?k=phone&crid=C4D61RIE54KV&sprefix=pho%2Caps%2C577&ref=nb_sb_noss_2',
+          'https://www.amazon.com/s?k=keyboard&crid=3B16L05N3ZA1U&sprefix=keyboard%2Caps%2C437&ref=nb_sb_noss_1',
+          'https://www.amazon.com/s?k=tablet&crid=3AO7ZHQTN4GVC&sprefix=table%2Caps%2C492&ref=nb_sb_noss_1',
+          'https://www.amazon.com/s?k=laptop&crid=3W4M7RF2TOVDW&sprefix=laptop%2Caps%2C362&ref=nb_sb_noss_1')
+
+category_df <- data.frame(
+  URL = urls,
+  Category = c(
+    "phonecase",
+    "phone",
+    "keyboard",
+    "tablet",
+    "laptop"
+  )
+)
+```
+
+
+```{r}
+aproducts <- function(url) {
+  page <- read_html(url)
+  
+  name <- page %>%
+    html_nodes("h2.a-size-mini") %>%
+    html_text() 
+  
+  price <- page %>%
+    html_nodes("span.a-price-whole") %>%
+    html_text() %>%
+    gsub("\\.", "", .)
+  
+  ratings <- page %>%
+    html_nodes("span.a-icon-alt") %>%
+    html_text() %>%
+    gsub(" out of 5 stars", "", .) %>%
+    gsub(" Stars & Up", "", .)
+  
+  prod_link <- page %>%
+    html_nodes("a.a-link-normal.s-underline-text.s-underline-link-text.s-link-style.a-text-normal") %>%
+    html_attr("href") %>%
+    paste0("https://www.amazon.com", .)
+  
+  data.frame(
+    Name = name[1:30],
+    Price = price[1:30],
+    Ratings = ratings[1:30],
+    link = prod_link[1:30]
+  )
+}
+
+products <- lapply(urls, aproducts)
+names(products) <- category_df$Category
+products[["phonecase"]]
+products[["phone"]]
+products[["keyboard"]]
+products[["tablet"]]
+products[["laptop"]]
 ```
