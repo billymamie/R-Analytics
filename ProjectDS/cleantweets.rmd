@@ -2,7 +2,10 @@
 title: "Cleantweets"
 author: "Noblezada, Camasa, Cabia"
 date: "2024-12-13"
-output: pdf_document
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -15,44 +18,64 @@ library(dplyr)
 library(stringr)
 library(ggplot2)
 library(sentimentr)
+library(lubridate)
 ```
+
 ```{r}
 # Load the dataset
 tweetsDF <- read_csv("/cloud/project/ProjectDS/tweetsDF.csv")
-
+```
+```{r}
 # Clean the tweet text
 tweetsDF <- tweetsDF %>%
   mutate(
     text = text %>%
-      iconv(from = "UTF-8", to = "ASCII//TRANSLIT", sub = "") %>% 
-      tolower() %>% 
-      str_remove_all("https\\S+") %>% 
-      str_remove_all("[#\\n]") %>% 
-      str_remove_all("[@?]\\S+") %>% 
-      str_remove_all("\\?") %>% 
-      str_remove_all("\\b\\d{2}\\.\\d{2}\\.\\d{4}\\b") %>%
-      str_remove_all("<a href=httptwitter.comdownloadiphone rel=nofollow>twitter for iphone<a>") %>% 
+      iconv(from = "UTF-8", to = "ASCII//TRANSLIT", sub = "") %>% # Remove non-ASCII characters
+      tolower() %>% # Convert to lowercase
+      str_remove_all("https\\S+") %>% # Remove URLs
+      str_remove_all("[#\\n]") %>% # Remove hashtags and newlines
+      str_remove_all("[@?]\\S+") %>% # Remove mentions
+      str_remove_all("\\?") %>% # Remove question marks
+      str_remove_all("\\b\\d{2}\\.\\d{2}\\.\\d{4}\\b") %>% # Remove dates in dd.mm.yyyy format
+      str_remove_all("<a href=httptwitter.comdownloadiphone rel=nofollow>twitter for iphone<a>") %>% # Remove specific substrings
       str_remove_all("<a href=([^>]*?) rel=nofollow>([^<]*?)<a>") %>%
       str_remove_all("<a href=httptwitter.comdownloadandroid rel=nofollow>twitter for android<a>") %>%
       str_remove_all("<a href= rel=nofollow>twitter web app<a>") %>%
-      str_remove_all("30102022") %>% 
-      str_squish() 
+      str_remove_all("30102022") %>% # Remove specific date
+      str_squish() # Remove extra whitespace
   )
+tweetsDF <- tweetsDF %>%
+  mutate(date = ymd_hms(created)) %>%  
+  mutate(hour = hour(date)) 
 
-# Function to create chunks of data
-create_chunks <- function(df, start_row, end_row) {
-  return(df[start_row:end_row, ])
-}
-
-# Define chunk size
-start_row <- 1
-end_row <- 1000
-
-# Extract chunk of data
-chunk_data <- create_chunks(tweetsDF, start_row, end_row)
-
-# Print cleaned dataset
 print(tweetsDF)
+```
+
+```{r}
+
+# Load and preprocess the dataset
+tweets_df <- read.csv("/cloud/project/ProjectDS/tweetsDF.csv")
+tweets_df$created <- ymd_hms(tweets_df$created)
+
+# Group tweets by hour and count
+tweets_per_time <- tweets_df %>%
+  mutate(hour = floor_date(created, "hour")) %>%
+  count(hour)
+
+# Plot the trend analysis
+ggplot(tweets_per_time, aes(x = hour, y = n)) +
+  geom_line(color = "red") +
+  labs(
+    title = "Tweet Activity Over Time",
+    x = "Time",
+    y = "Number of Tweets"
+  ) +
+  theme_minimal()
+
+# Observations:
+# - Tweets were minimal before midnight on October 29.
+# - A significant spike occurred after 10:30 PM on October 29, coinciding with the Itaewon tragedy.
+# - Activity peaked in the early morning of October 30, declined through the morning, and rose again in the evening.
 ```
 
 
