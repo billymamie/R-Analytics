@@ -1,5 +1,5 @@
 ---
-title: "Cleantweets"
+title: "Sentiment Analysis Project"
 author: "Noblezada, Camasa, Cabia"
 date: "2024-12-13"
 output:
@@ -25,8 +25,9 @@ library(lubridate)
 # Load the dataset
 tweetsDF <- read_csv("/cloud/project/ProjectDS/tweetsDF.csv")
 ```
+# Cleaning the tweet text
 ```{r}
-# Clean the tweet text
+
 tweetsDF <- tweetsDF %>%
   mutate(
     text = text %>%
@@ -49,8 +50,17 @@ tweetsDF <- tweetsDF %>%
   mutate(hour = hour(date)) 
 
 print(tweetsDF)
+
+TweetsDF <- head(tweetsDF, 1000)
+
+write.csv(TweetsDF, "CleanTweets.csv", row.names = FALSE)
 ```
 
+```{r}
+colnames(tweetsDF)
+```
+
+# Trend Analysis
 ```{r}
 
 # Load and preprocess the dataset
@@ -72,10 +82,71 @@ ggplot(tweets_per_time, aes(x = hour, y = n)) +
   ) +
   theme_minimal()
 
+```
 # Observations:
 # - Tweets were minimal before midnight on October 29.
 # - A significant spike occurred after 10:30 PM on October 29, coinciding with the Itaewon tragedy.
 # - Activity peaked in the early morning of October 30, declined through the morning, and rose again in the evening.
+
+
+# SENTIMENT ANALYSIS
+```{r}
+
+# Perform sentiment analysis on tweets to examine emotional responses.
+
+# Load sentiment lexicon and preprocess tweets
+sentiments <- get_sentiments("bing")
+tweet_tokens <- tweets_df %>%
+  unnest_tokens(word, text) %>%
+  inner_join(sentiments, by = "word")
+
+# Count sentiments and calculate percentages
+sentiment_counts <- tweet_tokens %>%
+  count(sentiment) %>%
+  mutate(percentage = n / sum(n) * 100)
+
+# Print sentiment counts
+print(sentiment_counts)
+
+# Plot sentiment analysis
+ggplot(sentiment_counts, aes(x = sentiment, y = percentage, fill = sentiment)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Sentiment Analysis of Tweets",
+    x = "Sentiment",
+    y = "Percentage"
+  ) +
+  theme_minimal()
+
+
 ```
+# Observations:
+# - The plot shows the proportion of positive and negative sentiments in the tweets.
+# - Helps to understand the overall emotional tone of the conversations.
+
+```{r}
+# Analyze the dataset to determine the distribution of tweets across different source platforms.
+# Group tweets by source and calculate the count for each source
+tweet_source_analysis <- tweets_df %>%
+  group_by(tweetSource) %>%
+  summarise(Number_of_Tweets = n()) %>%
+  arrange(desc(Number_of_Tweets))
+
+# Plot the number of tweets by source
+ggplot(tweet_source_analysis, aes(x = reorder(tweetSource, -Number_of_Tweets), y = Number_of_Tweets)) +
+  geom_bar(stat = "identity", fill = "green") +
+  labs(
+    title = "Tweet Volume by Source Platform",
+    x = "Source Platform",
+    y = "Number of Tweets"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+# Observations:
+# - The bar graph illustrates the distribution of tweets by source platform.
+# - The x-axis displays various platforms (e.g., iPhone, Android, others), while the y-axis represents the total tweet count from each source.
+# - iPhone and Android dominate as the most frequently used platforms for engaging with the content.
 
 
