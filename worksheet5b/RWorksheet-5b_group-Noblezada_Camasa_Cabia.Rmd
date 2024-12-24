@@ -1,0 +1,150 @@
+---
+title: "RWorksheet#5b"
+author: "Noblezada, Camasa, Cabia"
+date: "2024-12-24"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(rvest)
+library(httr)
+library(dplyr)
+library(polite)
+library(stringr)
+
+url <- "https://www.amazon.com/"
+session <- bow(url, 
+               user_agent = "Educational")
+session
+
+urls <- c('https://www.amazon.com/s?k=backpacks&crid=35ZQ1H72MC3G9&sprefix=backpacks%2Caps%2C590&ref=nb_sb_ss_ts-doa-p_3_9', 
+          'https://www.amazon.com/s?k=laptops&crid=L7MQBW7MD4SX&sprefix=laptopb%2Caps%2C1304&ref=nb_sb_noss_2',
+          'https://www.amazon.com/s?k=phone+case&dc&crid=1VPDCJ87S93TL&sprefix=phone+cas%2Caps%2C451&ref=a9_asc_1',
+          'https://www.amazon.com/s?k=mountain+bike&crid=1ZQR71S8XHZN6&sprefix=mountain+bik%2Caps%2C499&ref=nb_sb_noss_2',
+          'https://www.amazon.com/s?k=tshirt&crid=2RQIP7MP6IYAW&sprefix=tshirt%2Caps%2C443&ref=nb_sb_noss_2')
+
+```
+
+```{r}
+backpack_links <- read_html(urls[1]) %>%
+    html_nodes("a.a-link-normal.s-underline-text.s-underline-link-text.s-link-style.a-text-normal") %>%
+    html_attr("href") %>%
+    unique() %>%
+    paste0("https://www.amazon.com", .)
+
+laptop_links <- read_html(urls[2]) %>%
+    html_nodes("a.a-link-normal.s-underline-text.s-underline-link-text.s-link-style.a-text-normal") %>%
+    html_attr("href") %>%
+    unique() %>%
+    paste0("https://www.amazon.com", .)
+
+accessories_links <- read_html(urls[3]) %>%
+    html_nodes("a.a-link-normal.s-underline-text.s-underline-link-text.s-link-style.a-text-normal") %>%
+    html_attr("href") %>%
+    unique() %>%
+    paste0("https://www.amazon.com", .)
+
+sports_links <- read_html(urls[4]) %>%
+    html_nodes("a.a-link-normal.s-underline-text.s-underline-link-text.s-link-style.a-text-normal") %>%
+    html_attr("href") %>%
+    unique() %>%
+    paste0("https://www.amazon.com", .)
+
+clothing_links <- read_html(urls[5]) %>%
+    html_nodes("a.a-link-normal.s-underline-text.s-underline-link-text.s-link-style.a-text-normal") %>%
+    html_attr("href") %>%
+    unique() %>%
+    paste0("https://www.amazon.com", .)
+
+product_category_links <- data.frame(
+  Backpacks = backpack_links[1:10],
+  Laptops = laptop_links[1:10],
+  Accessories = accessories_links[1:10],
+  Sports = sports_links[1:10],
+  Clothing = clothing_links[1:10]
+)
+```
+
+```{r}
+#url of 10 products split into each of their category
+backpack_products_link <- product_category_links$Backpacks
+laptop_products_link <- product_category_links$Laptops
+accessories_products_link <- product_category_links$Accessories
+sports_products_link <- product_category_links$Sports
+clothing_products_link <- product_category_links$Clothing
+```
+
+```{r}
+scrape_reviews <- function(url) {
+  page <- read_html(url)
+          
+  product_name <- page %>%
+    html_nodes(".a-size-large.product-title-word-break") %>%
+    html_text(trim = T) %>%
+    strsplit(" ") %>%                
+    .[[1]] %>%                       
+    .[1:4] %>%
+    gsub("\\,", "", .) %>%
+    paste(collapse = " ")  
+  
+  user_name_reviews <- page %>%
+    html_nodes(".a-profile-name") %>%
+    html_text() %>%
+    unique()
+  
+  review_dates <- page %>%
+    html_nodes(".a-size-base.a-color-secondary.review-date") %>%
+    html_text() %>%
+    gsub(".*on ", "", .)
+  
+  reviewer_rating <- page %>%
+    html_nodes(".a-icon-alt") %>%
+    html_text() %>%
+    gsub(" out.*", "", .) %>%
+    .[grepl("^[0-9.]+$", .)] %>% 
+    as.numeric()
+  
+  review_title <- page %>%
+    html_nodes(".a-size-base.a-link-normal.review-title.a-color-base.review-title-content.a-text-bold span:nth-of-type(2)") %>%
+    html_text()
+  
+  text_reviews <- page %>%
+    html_nodes(".a-expander-content.reviewText.review-text-content.a-expander-partial-collapse-content") %>%
+    html_text(trim = TRUE)
+    
+  data.frame(
+    Product_Name = rep(product_name, 20),
+    Reviewer_Names = user_name_reviews[2:21],
+    Review_Date = review_dates[1:20],
+    Individual_Ratings = reviewer_rating[1:20],
+    Review_Title = review_title[1:20],
+    Text_Reviews = text_reviews[1:20]
+    )
+}
+
+bag_reviews <- lapply(backpack_products_link, scrape_reviews)
+laptop_reviews <- lapply(laptop_products_link, scrape_reviews)
+accessories_reviews <- lapply(accessories_products_link, scrape_reviews)
+sports_reviews <- lapply(sports_products_link, scrape_reviews)
+clothing_reviews <- lapply(clothing_products_link, scrape_reviews)
+```
+
+```{r}
+backpack_reviews_df <- do.call(rbind, bag_reviews)
+laptop_reviews_df <- do.call(rbind, laptop_reviews)
+accessories_reviews_df <- do.call(rbind, accessories_reviews)
+sports_reviews_df <- do.call(rbind, sports_reviews)
+clothing_reviews_df <- do.call(rbind, clothing_reviews)
+```
+
+```{r}
+print(backpack_reviews_df)
+print(laptop_reviews_df)
+print(accessories_reviews_df)
+print(sports_reviews_df)
+print(clothing_reviews_df)
+```
